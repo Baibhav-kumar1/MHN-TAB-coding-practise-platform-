@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { STARTER_TEMPLATES, getBoilerplateForExtension } from '../utils/starterTemplates';
 import { LANGUAGES, getLanguageConfig, getLanguageByExtension } from '../utils/languages';
-import { api } from '../utils/api';
+import { api, API_BASE } from '../utils/api';
 
 const PlaygroundContext = createContext();
 
@@ -186,7 +186,7 @@ export function PlaygroundProvider({ children }) {
 
     const connectSync = () => {
       try {
-        eventSource = new EventSource('/api/sync/events');
+        eventSource = new EventSource(`${API_BASE}/sync/events`);
 
         eventSource.onopen = () => {
           // Connected to SSE

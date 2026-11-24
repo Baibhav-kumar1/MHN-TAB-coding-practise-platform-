@@ -1,4 +1,6 @@
-const API_BASE = '/api';
+export const API_BASE = (typeof window !== 'undefined' && window.location.port === '3000')
+  ? 'http://localhost:5001/api'
+  : '/api';
 
 function getAuthHeader() {
   const token = localStorage.getItem('ojt_token');

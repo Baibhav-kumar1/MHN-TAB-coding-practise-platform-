@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply transition-colors duration-200 antialiased;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d0d7de;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #afb8c1;
+}
+
+/* Resize handle styling */
+.resizer-v {
+  cursor: row-resize;
+  transition: background-color 0.15s ease;
+}
+.resizer-v:hover, .resizer-v.active {
+  background-color: #38bdf8 !important;
+}
+
+/* Monaco container styling */
+.monaco-editor, .overflow-guard {
+  border-radius: 0 0 8px 8px;
+}

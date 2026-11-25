@@ -42,7 +42,9 @@ app.use((req, res, next) => {
 
 // Ensure audio uploads directory exists and mount static streaming
 const fs = require('fs');
-const musicUploadDir = path.join(__dirname, 'uploads/music');
+const musicUploadDir = process.env.VERCEL
+  ? path.join('/tmp', 'uploads', 'music')
+  : path.join(__dirname, 'uploads/music');
 if (!fs.existsSync(musicUploadDir)) {
   fs.mkdirSync(musicUploadDir, { recursive: true });
 }
@@ -92,11 +94,32 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
-// Initialize DB, seed default content, and start server
+// Ensure database & seed are initialized before handling API requests
+let dbInitPromise = null;
+async function ensureDbReady() {
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      await initDB();
+      await seed();
+    })();
+  }
+  return dbInitPromise;
+}
+
+// Middleware to ensure DB is ready on serverless cold starts
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbReady();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Start standalone server when running directly
 async function startServer() {
   try {
-    await initDB();
-    await seed();
+    await ensureDbReady();
 
     app.listen(PORT, () => {
       console.log(`===============================================`);
@@ -111,4 +134,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+module.exports = app;

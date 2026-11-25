@@ -2,7 +2,19 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'ojt_playground.db');
+let dbPath = path.join(__dirname, 'ojt_playground.db');
+if (process.env.VERCEL) {
+  const tmpDbPath = path.join('/tmp', 'ojt_playground.db');
+  try {
+    if (fs.existsSync(dbPath) && !fs.existsSync(tmpDbPath)) {
+      fs.copyFileSync(dbPath, tmpDbPath);
+    }
+  } catch (e) {
+    console.warn('Could not copy sqlite db to /tmp, will initialize fresh:', e.message);
+  }
+  dbPath = tmpDbPath;
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Could not connect to SQLite database', err);

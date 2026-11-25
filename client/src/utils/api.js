@@ -1,6 +1,32 @@
-export const API_BASE = (typeof window !== 'undefined' && window.location.port === '3000')
-  ? 'http://localhost:5001/api'
-  : '/api';
+// Resolve API base URL based on runtime environment, bindings, and browser context
+const getApiBase = () => {
+  // If running in Node/SSR environment with Vercel service binding SERVER_URL
+  if (typeof process !== 'undefined' && process.env && process.env.SERVER_URL) {
+    const base = process.env.SERVER_URL.replace(/\/+$/, '');
+    return `${base}/api`;
+  }
+
+  // If injected via Vite build-time environment variable
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    if (import.meta.env.VITE_SERVER_URL) {
+      const base = import.meta.env.VITE_SERVER_URL.replace(/\/+$/, '');
+      return `${base}/api`;
+    }
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+    }
+  }
+
+  // If running in local browser development directly against Vite dev server on port 3000
+  if (typeof window !== 'undefined' && window.location.port === '3000') {
+    return 'http://localhost:5001/api';
+  }
+
+  // Default: In production or when deployed behind Vercel rewrites, use public relative path
+  return '/api';
+};
+
+export const API_BASE = getApiBase();
 
 function getAuthHeader() {
   const token = localStorage.getItem('ojt_token');

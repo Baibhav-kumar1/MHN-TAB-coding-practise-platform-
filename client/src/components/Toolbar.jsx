@@ -52,6 +52,12 @@ export default function Toolbar({ onOpenSave, onOpenShare, onOpenAi }) {
 
   const currentLangConfig = getLanguageConfig(activeTab?.language);
 
+  // Detect if code uses standard input reading functions
+  const hasInputInCode = Boolean(
+    activeTab?.code &&
+    (/(cin\s*>>|scanf\s*\(|getline\s*\(|input\s*\(|sys\.stdin|Scanner\s+|readLine\s*\(|readline\s*\()/i).test(activeTab.code)
+  );
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -215,13 +221,21 @@ export default function Toolbar({ onOpenSave, onOpenShare, onOpenAi }) {
             setOutputTab('input');
             setIsCollapsed(false);
           }}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-gray-300 hover:text-white bg-[#21262d] hover:bg-[#30363d] border border-gray-700 transition-colors"
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${
+            hasInputInCode && !activeTab?.stdin
+              ? 'bg-amber-950/40 text-amber-300 border border-amber-600/50 hover:bg-amber-900/50'
+              : 'text-gray-300 hover:text-white bg-[#21262d] hover:bg-[#30363d] border border-gray-700'
+          }`}
           title="Open Stdin Input Tab"
         >
-          <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
+          <MessageSquare className={`w-3.5 h-3.5 ${hasInputInCode && !activeTab?.stdin ? 'text-amber-400' : 'text-sky-400'}`} />
           <span className="hidden sm:inline">Input (stdin)</span>
           {activeTab?.stdin ? (
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          ) : hasInputInCode ? (
+            <span className="px-1 py-0.2 rounded text-[9px] bg-amber-500/30 text-amber-200 font-mono animate-pulse">
+              needed
+            </span>
           ) : null}
         </button>
 

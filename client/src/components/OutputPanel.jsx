@@ -31,12 +31,19 @@ export default function OutputPanel({ onOpenAi, isWorkspaceManaged = true }) {
     isRunning, 
     clearOutput,
     activeTab,
-    updateActiveStdin
+    updateActiveStdin,
+    runCode
   } = usePlayground();
 
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(panelHeight);
+
+  // Detect if the current code uses standard input reading functions
+  const hasInputInCode = Boolean(
+    activeTab?.code &&
+    (/(cin\s*>>|scanf\s*\(|getline\s*\(|input\s*\(|sys\.stdin|Scanner\s+|readLine\s*\(|readline\s*\()/i).test(activeTab.code)
+  );
 
   // Drag resizer handlers
   const handleMouseDown = (e) => {
@@ -180,6 +187,8 @@ export default function OutputPanel({ onOpenAi, isWorkspaceManaged = true }) {
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
               outputTab === 'input' && !isCollapsed
                 ? 'bg-[#21262d] text-emerald-400 border border-gray-700'
+                : hasInputInCode && !activeTab?.stdin
+                ? 'text-amber-300 bg-amber-950/40 border border-amber-600/50'
                 : 'text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -188,6 +197,10 @@ export default function OutputPanel({ onOpenAi, isWorkspaceManaged = true }) {
             {activeTab?.stdin ? (
               <span className="px-1 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-mono">
                 set
+              </span>
+            ) : hasInputInCode ? (
+              <span className="px-1 py-0.2 rounded text-[9px] bg-amber-500/30 text-amber-200 font-mono animate-pulse">
+                needed
               </span>
             ) : null}
           </button>
@@ -266,9 +279,30 @@ export default function OutputPanel({ onOpenAi, isWorkspaceManaged = true }) {
                   <span>Executing program in isolated container...</span>
                 </div>
               ) : executionResult.stdout ? (
-                <pre className="whitespace-pre-wrap font-mono leading-relaxed select-text text-gray-200">
-                  {executionResult.stdout}
-                </pre>
+                <div>
+                  <pre className="whitespace-pre-wrap font-mono leading-relaxed select-text text-gray-200">
+                    {executionResult.stdout}
+                  </pre>
+                  {hasInputInCode && !activeTab?.stdin?.trim() && (
+                    <div className="mt-3 p-3 rounded-lg bg-sky-950/40 border border-sky-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-sky-200">
+                      <div className="flex items-start gap-2.5">
+                        <MessageSquare className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sky-300">Standard Input (stdin) is required</p>
+                          <p className="text-[11px] text-gray-300 leading-normal">
+                            Your code asks for user input (<code className="text-sky-300 font-mono">cin</code> / <code className="text-sky-300 font-mono">input()</code>). Provide values in the <strong>Input (stdin)</strong> tab so the program can compute results.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setOutputTab('input')}
+                        className="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs shrink-0 transition-colors shadow-sm self-start sm:self-auto"
+                      >
+                        Enter Input Values &rarr;
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : executionResult.stderr ? (
                 <div className="text-rose-400 flex flex-col gap-2">
                   <p className="font-semibold flex items-center gap-1.5">
@@ -289,6 +323,15 @@ export default function OutputPanel({ onOpenAi, isWorkspaceManaged = true }) {
                   <Terminal className="w-8 h-8 mb-2 opacity-40" />
                   <p className="font-sans text-sm">Program output will appear here</p>
                   <p className="font-sans text-[11px] text-gray-600 mt-0.5">Click "Run Code" or press ⌘+Enter to execute.</p>
+                  {hasInputInCode && !activeTab?.stdin?.trim() && (
+                    <button
+                      onClick={() => setOutputTab('input')}
+                      className="mt-3 px-3 py-1.5 rounded-md bg-[#21262d] hover:bg-[#30363d] border border-amber-500/40 text-amber-300 font-sans text-xs flex items-center gap-1.5 transition-colors"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                      Provide Input in the Stdin Tab &rarr;
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -296,23 +339,39 @@ export default function OutputPanel({ onOpenAi, isWorkspaceManaged = true }) {
 
           {/* TAB 2: INPUT (STDIN) */}
           {outputTab === 'input' && (
-            <div className="h-full flex flex-col gap-2 font-sans">
+            <div className="h-full flex flex-col gap-2.5 font-sans">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-gray-200 flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
                   Standard Input (stdin)
                 </span>
-                <span className="text-[11px] text-gray-500">
-                  Passed to Scanner (Java), input() (Python), cin (C++)
+                <span className="text-[11px] text-gray-400">
+                  Passed to <code className="text-emerald-300 font-mono">cin</code> (C++), <code className="text-emerald-300 font-mono">input()</code> (Python), <code className="text-emerald-300 font-mono">Scanner</code> (Java)
                 </span>
               </div>
               <textarea
                 value={activeTab?.stdin || ''}
                 onChange={(e) => updateActiveStdin(e.target.value)}
-                placeholder="Enter input for interactive programs here (e.g. numbers, names, multiline values)..."
+                placeholder="Enter input values here (e.g. for two numbers enter: 10 20 or each on a new line)..."
                 rows={4}
-                className="w-full flex-1 p-2.5 rounded-lg bg-[#161b22] border border-gray-700 text-gray-200 font-mono text-xs focus:outline-none focus:border-sky-500 transition-colors resize-none"
+                className="w-full flex-1 p-2.5 rounded-lg bg-[#161b22] border border-gray-700 text-gray-200 font-mono text-xs focus:outline-none focus:border-emerald-500 transition-colors resize-none"
               />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5">
+                <span className="text-[11px] text-gray-400">
+                  💡 Tip: For numbers, separate with space (e.g. <code className="text-gray-300 font-mono">10 20</code>) or newlines.
+                </span>
+                <button
+                  onClick={() => {
+                    setOutputTab('output');
+                    runCode();
+                  }}
+                  disabled={isRunning}
+                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition-all shadow-sm active:scale-95 self-end sm:self-auto"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  Run with this Input
+                </button>
+              </div>
             </div>
           )}
 
